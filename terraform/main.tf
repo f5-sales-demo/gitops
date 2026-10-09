@@ -59,6 +59,7 @@ resource "xcsh_http_loadbalancer" "httpbin" {
   }
   routes {
     simple_route {
+      http_method = "ANY"
       path {
         prefix = "/"
       }
