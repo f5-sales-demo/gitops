@@ -41,7 +41,7 @@ class DeploymentTests(unittest.TestCase):
 
     def test_superseded_plan_never_applies(self) -> None:
         """Verify superseded plan never applies."""
-        calls = []
+        calls: list[list[str]] = []
         stores = []
         lease = mock.Mock()
         with (
@@ -83,7 +83,7 @@ class DeploymentTests(unittest.TestCase):
     def test_new_commit_after_apply_reconciles(self) -> None:
         """Verify new commit after apply reconciles."""
         commits = ["a" * 40] * 3 + ["b" * 40] * 5
-        calls = []
+        calls: list[list[str]] = []
         with (
             mock.patch.object(deployment, "latest", side_effect=commits),
             mock.patch.object(deployment, "github", return_value=source_archive()),

@@ -258,7 +258,7 @@ def reconcile(branch: str, lease: EnvironmentLease) -> None:
             source = github("tarball/" + commit, binary=True)
             if not isinstance(source, bytes):
                 message = "Commit configuration is unavailable"
-                raise RuntimeError(message)
+                raise TypeError(message)
             extract_configuration(source, directory)
             variables = directory / "environment.auto.tfvars.json"
             variables.write_text(
