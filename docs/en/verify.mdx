@@ -1,0 +1,30 @@
+---
+title: Verify a deployment
+description: Check DNS, HTTPBin content, ownership, and a zero-change plan.
+sidebar:
+  order: 5
+---
+
+Use the applied commit and hostname from the deployment receipt.
+
+1. Resolve the hostname with your DNS client.
+2. Request the HTTPBin endpoint:
+
+   ```sh
+   curl --fail --silent --show-error 'http://gitops.f5-sales-demo.com/get?demo=gitops'
+   ```
+
+3. Confirm that the JSON includes `args.demo` equal to `gitops` and a URL using the HTTPBin origin. An HTTP status alone does not prove correct forwarding.
+4. Repeat the request with the preview hostname printed by the canonical resolver.
+5. In the F5 Distributed Cloud console, confirm that each environment's namespace contains only its named origin pool and HTTP load balancer, and inspect the ownership labels.
+6. Run **Deploy branch environment** again for the same commit and confirm that Terraform finds no changes.
+
+## Qualify concurrent changes
+
+Push three rapid Terraform changes to each of 10 developer branches. Verify that every final receipt identifies that branch's latest commit, every environment has separate state, and each concurrency group has one writer. Active applies must finish without workflow cancellation.
+
+## Qualify recovery
+
+Replace a Terraform runner pod between deployments and confirm that state remains available. Retry a failed deployment using its retained private configuration. Test competing native backend Lease acquisition and confirm that a second writer waits or fails to acquire the lock. Delete the test branches, verify cleanup, and confirm that the main endpoint remains healthy.
+
+Record sanitized commit identities, resource names, queue timings, and outcomes. Keep raw state, plans, API responses, and recovery archives private.

@@ -1,8 +1,12 @@
 ---
 title: GitOps
-description: Branch deployments with F5 Distributed Cloud, Terraform, and Kubernetes state.
+description: Deploy an isolated F5 Distributed Cloud HTTP endpoint for each Git branch.
+sidebar:
+  order: 1
 ---
 
-Deploy an independently owned HTTP load balancer for each Git branch. The custom xcsh Terraform provider manages F5 Distributed Cloud resources. Kubernetes Secrets preserve state; Leases coordinate access.
+GitOps turns a Git branch into a running F5 Distributed Cloud HTTP load balancer. Each environment forwards requests to `https://httpbin.org` and owns a separate namespace, origin pool, load balancer, and Terraform state.
 
-Implementation and live acceptance are in progress.
+The [custom xcsh Terraform provider](https://github.com/f5-sales-demo/terraform-provider-xcsh) translates Terraform resources into F5 Distributed Cloud API calls. This demo pins its signed release `15.5.2` and commits the provider lock file.
+
+Start with [Set up the demo](./setup/), then [Deploy a branch](./deploy/) and [Verify a deployment](./verify/). [Architecture](./architecture/) explains state and concurrency. [Clean up a branch](./cleanup/) and [Troubleshoot deployments](./troubleshooting/) cover operation and recovery. [Terraform reference](./terraform/) maps the configuration to provider resources.

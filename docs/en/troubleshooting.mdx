@@ -1,0 +1,19 @@
+---
+title: Troubleshoot deployments
+description: Diagnose runner assignment, state access, forwarding, and failed applies.
+sidebar:
+  order: 7
+---
+
+| Symptom | Check |
+| --- | --- |
+| Job stays queued | Confirm the exact repository-scoped runner label, ARC listener readiness, node capacity, and cluster autoscaler activity. Inspect elapsed queue time without cancelling an active apply. |
+| Kubernetes backend initialization fails | Confirm projected credentials, the state namespace, and the dedicated service-account RoleBinding. |
+| Terraform waits for a lock | Inspect the environment Lease and the active writer. Let the writer finish; do not remove a lock solely because it is old. |
+| Provider authentication fails | Confirm the tenant URL and token permissions in private secret configuration. |
+| DNS does not resolve | Confirm delegated-domain ownership, managed DNS configuration, and load balancer readiness. |
+| HTTP returns an upstream error | Check origin DNS, port 443, certificate validation, SNI, and Host rewriting to `httpbin.org`. |
+| Apply partially fails | Keep the state and recovery configuration. Retry deployment for the current branch commit; Terraform reconciles resources already created. |
+| Cleanup fails after deletion | Retry the cleanup workflow with the exact deleted branch name and retained configuration. |
+
+A successful source check, artifact download, or HTTP status does not complete live acceptance. Use the DNS, response-content, ownership, zero-change, concurrency, and recovery checks in [Verify a deployment](../verify/).

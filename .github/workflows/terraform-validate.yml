@@ -1,0 +1,34 @@
+---
+name: Validate Terraform
+on:
+  pull_request:
+  push:
+    paths: ['terraform/**', 'scripts/branch_environment.py', 'scripts/deployment.py', '.github/workflows/terraform-*.yml']
+permissions:
+  contents: read
+concurrency:
+  group: terraform-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: managed-socketless
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/cache@3edfce9056124e459a23f683a21433670d47daca
+        with:
+          path: ${{ runner.temp }}/terraform-providers
+          key: terraform-providers-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('terraform/.terraform.lock.hcl') }}
+      - name: Validate naming and locked Terraform configuration
+        env:
+          TF_PLUGIN_CACHE_DIR: ${{ runner.temp }}/terraform-providers
+        run: |
+          set -euo pipefail
+          mkdir -p "$TF_PLUGIN_CACHE_DIR"
+          python3 scripts/test_branch_environment.py
+          python3 scripts/test_deployment.py
+          terraform -chdir=terraform fmt -check -recursive
+          terraform -chdir=terraform init -backend=false -input=false -lockfile=readonly
+          terraform -chdir=terraform validate
+          terraform -chdir=terraform test

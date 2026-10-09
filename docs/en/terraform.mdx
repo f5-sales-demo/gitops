@@ -1,0 +1,32 @@
+---
+title: Terraform reference
+description: Map GitOps inputs, resources, outputs, and backend configuration to the custom provider.
+sidebar:
+  order: 8
+---
+
+The deployment root is `terraform/`. It pins [`f5-sales-demo/xcsh` version `15.5.2`](https://registry.terraform.io/providers/f5-sales-demo/xcsh/15.5.2/docs) and commits
+`.terraform.lock.hcl`. The [provider source](https://github.com/f5-sales-demo/terraform-provider-xcsh) and [reference
+documentation](https://f5-sales-demo.github.io/terraform-provider-xcsh/en/) explain its generated API resources.
+
+| File | Purpose |
+| --- | --- |
+| `versions.tf` | Terraform version, provider pin, and native Kubernetes backend |
+| `variables.tf` | Validated environment identity, base name, base domain, and origin hostname |
+| `main.tf` | Namespace, TLS origin pool, and public HTTP load balancer |
+| `outputs.tf` | Hostname, namespace, and owned resource names |
+| `tests/isolation.tftest.hcl` | Credential-free main and preview naming tests |
+| `.terraform.lock.hcl` | Released provider checksums |
+
+The resolver generates nonsecret TFVARS JSON. Provider authentication comes from `XCSH_API_URL` and `XCSH_API_TOKEN`, without credential fields in TFVARS.
+
+| Input | Default |
+| --- | --- |
+| `environment_id` | Required; `main` or the canonical hashed branch identity |
+| `base_name` | `gitops` |
+| `base_domain` | `f5-sales-demo.com` |
+| `origin_hostname` | `httpbin.org` |
+
+The Kubernetes backend receives `namespace=gitops-terraform-state`, a separate `secret_suffix` for each environment, and `in_cluster_config=true`. Native backend locking uses a Kubernetes Lease. State persists independently of disposable runner pods and working directories.
+
+The resources are `xcsh_namespace.environment`, `xcsh_origin_pool.httpbin`, and `xcsh_http_loadbalancer.httpbin`. Their explicit dependency references preserve namespace ownership and destruction order. Main uses unsuffixed names; previews suffix every owned resource with the branch identifier.

@@ -1,0 +1,49 @@
+---
+title: Architecture
+description: Resource ownership, branch naming, state persistence, and reconciliation.
+sidebar:
+  order: 2
+---
+
+A request reaches a public F5 Distributed Cloud load balancer on HTTP port 80. The load balancer rewrites the Host header to `httpbin.org`. Its origin pool connects to port 443 with SNI `httpbin.org` and verifies the origin certificate using the F5 trust store.
+
+| Component | Responsibility |
+| --- | --- |
+| Git branch | Desired Terraform configuration |
+| xcsh provider `15.5.2` | F5 Distributed Cloud API resource lifecycle |
+| GitHub Actions | Branch validation, deployment, and deletion cleanup |
+| Repository-scoped `gitops-terraform` runner | Terraform execution using projected Kubernetes credentials |
+| `gitops-terraform-state` namespace | Durable state Secrets, recovery configuration Secrets, and locking Leases |
+| Existing EKS cluster | State availability and encryption at rest |
+
+## Identify an environment
+
+`main` uses `gitops.f5-sales-demo.com` and the resource name `gitops`. A developer branch uses `gitops-<branch-id>.f5-sales-demo.com`. Its namespace, origin pool, and load balancer all include the same identifier.
+
+The canonical resolver normalizes up to 24 characters to lowercase ASCII letters, digits, and hyphens, then appends 12 hexadecimal characters from the SHA-256 hash of the original UTF-8 branch name. The hash distinguishes punctuation, Unicode, and truncation collisions. An empty normalized name uses `branch`.
+
+Run the resolver to see the exact identity:
+
+```sh
+python3 scripts/branch_environment.py 'feature/my-demo'
+```
+
+Governance sync, dependency-update, release, content snapshot, and Pages branches are excluded from infrastructure deployment.
+
+## Preserve state
+
+Terraform uses its native Kubernetes backend. Each environment receives a separate Secret suffix and native Lease locking. State and recovery configuration live outside runner namespaces, so replacing a runner or removing its ARC release does not delete state.
+
+Only the dedicated Terraform runner service account receives namespaced Secret and Lease permissions. Ordinary documentation and lint runners have no access to the state namespace. Provider files and working directories are disposable. Credentials come from GitHub secrets and projected service-account credentials.
+
+The cluster encrypts Secrets at rest. State remains dependent on this EKS cluster: before retiring the cluster, preserve state, recovery configurations, and their environment identities in private storage, then verify recovery on the replacement backend.
+
+## Reconcile the latest commit
+
+Validation runs cancel obsolete work. Deployment and cleanup share a concurrency group per canonical environment and keep cancellation disabled. Different environments run concurrently.
+
+A deployment resolves the latest branch commit when execution starts. It creates a saved plan, checks the branch again, and discards superseded plans. Before apply, it
+preserves the exact Terraform configuration, provider lock, generated variables, and commit receipt in private Kubernetes Secrets. It checks the commit again after that
+write. An active apply finishes; if a newer commit exists, the same job reconciles again. Queue order does not determine the final deployment.
+
+Cleanup runs automation from trusted `main` and restores the deleted branch's private configuration. It refuses `main`, checks whether the branch was recreated, and destroys only resources tracked by that environment's state. Empty state remains available for reuse.

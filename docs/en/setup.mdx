@@ -1,0 +1,35 @@
+---
+title: Set up the demo
+description: Prepare governed repository settings, credentials, runners, and the delegated domain.
+sidebar:
+  order: 3
+---
+
+Repository onboarding must finish before infrastructure automation is enabled. The organization maintains governance through [docs-control](https://github.com/f5-sales-demo/docs-control) and runner infrastructure through [self-hosted-runner](https://github.com/f5-sales-demo/self-hosted-runner).
+
+## Prepare the repository
+
+1. Confirm that managed files match the current central manifest, including file modes and required-absent paths.
+2. Confirm that protected `main` requires the central linked-issue and lint checks, and that Pages uses GitHub Actions.
+3. Confirm that `managed-socketless`, `managed-container-build`, and `gitops-terraform` runners are registered for this repository.
+4. Confirm that the durable state namespace and dedicated service-account RoleBinding exist.
+5. Install `REPO_SETTINGS_TOKEN` and `REPO_SYNC_TOKEN` through the canonical governance provisioner.
+6. Store `XCSH_API_URL` and `XCSH_API_TOKEN` as repository Actions secrets. Use the Sales Demo tenant URL and a token authorized to manage the demo resources.
+7. Confirm that `f5-sales-demo.com` is delegated to F5 Distributed Cloud and that the `gitops` resource names and hostnames are available.
+8. Enable Actions after onboarding verification succeeds.
+
+Secrets must stay in private storage. Never commit tokens, raw state, saved plans, or recovery archives, and never upload them as Actions artifacts.
+
+## Validate a local change
+
+Install Terraform `1.16.3` or a compatible `1.x` release and Python 3. The released provider is downloaded from the Terraform Registry; no development override is needed.
+
+```sh
+python3 scripts/test_branch_environment.py
+terraform -chdir=terraform fmt -check -recursive
+terraform -chdir=terraform init -backend=false -input=false -lockfile=readonly
+terraform -chdir=terraform validate
+terraform -chdir=terraform test
+```
+
+These checks use no F5 credentials. Deployment runs on the dedicated cluster runner, where the Kubernetes backend authenticates with projected service-account credentials.
