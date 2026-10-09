@@ -30,6 +30,12 @@ def source_archive() -> bytes:
     return output.getvalue()
 
 
+def record_call(calls: list, args: list) -> int:
+    """Record an operation and emulate a plan with changes."""
+    calls.append(args)
+    return 2 if args[0] == "plan" else 0
+
+
 class DeploymentTests(unittest.TestCase):
     """Verify stale commits, private recovery and competing writers."""
 
@@ -56,8 +62,8 @@ class DeploymentTests(unittest.TestCase):
             mock.patch.object(
                 deployment,
                 "terraform",
-                side_effect=lambda _directory, args, **_kwargs: (
-                    calls.append(args) or (2 if args[0] == "plan" else 0)
+                side_effect=lambda _directory, args, **_kwargs: record_call(
+                    calls, args
                 ),
             ),
             mock.patch.object(
@@ -85,8 +91,8 @@ class DeploymentTests(unittest.TestCase):
             mock.patch.object(
                 deployment,
                 "terraform",
-                side_effect=lambda _directory, args, **_kwargs: (
-                    calls.append(args) or (2 if args[0] == "plan" else 0)
+                side_effect=lambda _directory, args, **_kwargs: record_call(
+                    calls, args
                 ),
             ),
             mock.patch.object(deployment, "store"),

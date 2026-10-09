@@ -58,7 +58,9 @@ def github(path: str, *, binary: bool = False) -> dict | bytes | None:
 def latest(branch: str) -> str | None:
     """Resolve the current branch head, treating a missing branch as deleted."""
     result = github("git/ref/heads/" + urllib.parse.quote(branch, safe=""))
-    return None if result is None else result["object"]["sha"]
+    if not isinstance(result, dict):
+        return None
+    return result["object"]["sha"]
 
 
 def kubectl(
@@ -92,7 +94,7 @@ def store(name: str, archive: bytes, receipt: dict) -> None:
     if len(archive) + len(encoded_receipt) > SECRET_BUDGET:
         message = "Recovery configuration exceeds the Kubernetes Secret size budget"
         raise RuntimeError(message)
-    secret = {
+    secret: dict = {
         "apiVersion": "v1",
         "kind": "Secret",
         "metadata": {
@@ -143,7 +145,11 @@ def extract_configuration(source: bytes, target: Path) -> None:
                 continue
             destination = target / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(archive.extractfile(member).read())
+            extracted = archive.extractfile(member)
+            if extracted is None:
+                message = "Archive member has no regular file data"
+                raise RuntimeError(message)
+            destination.write_bytes(extracted.read())
     if (
         not (target / ".terraform.lock.hcl").is_file()
         or not (target / "versions.tf").is_file()
@@ -181,7 +187,11 @@ def restore(archive: bytes, directory: Path) -> None:
                 raise RuntimeError(message)
             path = directory / relative
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_bytes(source.extractfile(member).read())
+            extracted = source.extractfile(member)
+            if extracted is None:
+                message = "Recovery member has no regular file data"
+                raise RuntimeError(message)
+            path.write_bytes(extracted.read())
 
 
 def terraform(
@@ -246,7 +256,7 @@ def reconcile(branch: str, lease: EnvironmentLease) -> None:
             directory = Path(temporary) / "terraform"
             directory.mkdir()
             source = github("tarball/" + commit, binary=True)
-            if source is None:
+            if not isinstance(source, bytes):
                 message = "Commit configuration is unavailable"
                 raise RuntimeError(message)
             extract_configuration(source, directory)
@@ -390,7 +400,7 @@ class EnvironmentLease:
         self.holder = os.environ.get("GITHUB_RUN_ID", "manual") + "-" + uuid.uuid4().hex
         self.stop = threading.Event()
         self.lost = threading.Event()
-        self.thread = None
+        self.thread: threading.Thread | None = None
         self.mutex = threading.Lock()
 
     def _write(self, *, acquire: bool = False) -> bool:
@@ -413,7 +423,7 @@ class EnvironmentLease:
                 seconds=current["spec"]["leaseDurationSeconds"]
             ):
                 return False
-        lease = {
+        lease: dict = {
             "apiVersion": "coordination.k8s.io/v1",
             "kind": "Lease",
             "metadata": {"name": self.name, "namespace": STATE_NAMESPACE},
@@ -467,7 +477,8 @@ class EnvironmentLease:
     def __exit__(self, *_arguments: object) -> None:
         """Release only the Lease still owned by this transaction."""
         self.stop.set()
-        self.thread.join()
+        if self.thread is not None:
+            self.thread.join()
         current = kubectl(
             ["get", "lease", self.name, "--ignore-not-found", "-o", "json"],
             allow_missing=True,
