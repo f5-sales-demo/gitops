@@ -1,0 +1,41 @@
+---
+title: Deployment evidence
+description: Verified GitOps deployment, isolated branch recovery, cleanup, and current qualification limits.
+sidebar:
+  order: 9
+---
+
+The first working deployment was verified on October 9, 2026, using signed xcsh provider `15.5.2`. The deployed main commit was `08875aa913f4b0b01d738c0e02e56ec7d98ef047`.
+
+| Gate | Evidence |
+| --- | --- |
+| Governance | 62 managed files matched canonical blob identities; 16 required-absent paths were absent. Required checks passed and scoped central reconciliation returned `noop`. |
+| Main forwarding | DNS resolved `gitops.f5-sales-demo.com`; `/get?demo=gitops` returned HTTPBin JSON with the expected argument and upstream URL. |
+| Ownership | Main and preview API objects had distinct namespaces and matching environment labels. Origin TLS used `httpbin.org`; routes rewrote the Host header to that origin. |
+| Idempotence | A subsequent main plan returned exit code 0, with all three resources showing `no-op`. |
+| Recovery | Native Kubernetes state survived replacement of a probe pod. A competing Lease holder was rejected. Partial-apply recovery retained configuration and state. |
+| Concurrency | Ten branches each received three rapid commits and a route-method correction. Every final receipt matched its latest branch commit and had isolated state. Excess queued jobs were replaced before acquiring a runner; no active apply was cancelled. |
+| Cleanup | All ten acceptance previews were destroyed by trusted main automation. Each retained state had zero resources. Main continued returning HTTPBin JSON. |
+| Documentation | English routes, content links, desktop/mobile layouts, and the published content receipt passed. A redundant favicon reference required a shared-theme repair. |
+
+## Resolve the provider default during recovery
+
+The first apply created resources but reported an inconsistent result because the API returned route `http_method = "ANY"` while configuration left the field unset. The explicit `ANY` setting matched the intended behavior. Deployment then succeeded using the retained state; no replacement backend was created.
+
+## Interpret performance measurements
+
+Five zero-change plans were measured for each resource request with the same provider and main configuration:
+
+| Request | Median plan duration | Aggregate CPU throttling | Peak memory |
+| --- | --- | --- | --- |
+| Ordinary 7 CPU / 24 GiB | 1.489 seconds | 0 | 198 MiB |
+| Candidate 1 CPU / 2 GiB | 1.873 seconds | 2.103 seconds | 224 MiB |
+| Retained 2 CPU / 2 GiB | 1.486 seconds | 0 | 237 MiB |
+
+All plans returned exit code 0. The 2-CPU candidate preserved plan duration with a smaller scheduling request. This sample qualifies these zero-change plans; it does not establish every provider operation's resource needs.
+
+A fresh correlated lifecycle sample measured warm assignment p95 at 19 seconds, within the 20-second target. Cold assignment has no qualified samples. Representative documentation, lint, provider-build, and mixed-fleet throughput comparisons remain pending in [runner issue 245](https://github.com/f5-sales-demo/self-hosted-runner/issues/245).
+
+The released Super-Linter seed was removed from GitOps after identity verification rejected it and startup exceeded the cold target. Node-group maxima were preserved. Calculated capacity includes node allocatable CPU, memory, pod slots, DaemonSet requests, and 20 percent headroom; existing fleet limits remain subject to workload qualification.
+
+State and recovery archives are private Kubernetes Secrets. Public evidence contains only identities, counts, timings, and outcomes.
