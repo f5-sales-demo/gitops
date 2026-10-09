@@ -11,6 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   validate:
+    name: Validate configuration
     runs-on: managed-socketless
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

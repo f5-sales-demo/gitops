@@ -15,6 +15,10 @@ permissions:
   contents: read
 jobs:
   resolve:
+    name: Resolve environment
+    concurrency:
+      group: resolver-${{ github.workflow }}-${{ github.run_id }}
+      cancel-in-progress: false
     if: vars.GITOPS_DEPLOYMENT_ENABLED == 'true'
     runs-on: managed-socketless
     outputs:
@@ -40,6 +44,8 @@ jobs:
               output.write("identity=" + result["environment_id"] + "\nbranch=" + result["branch"] + "\n")
           PY
   deploy:
+    name: Deploy environment
+    environment: gitops-infrastructure
     if: >-
       github.repository == 'f5-sales-demo/gitops' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
