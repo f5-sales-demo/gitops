@@ -1,0 +1,70 @@
+---
+name: Clean up deleted branch
+on:
+  delete:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Deleted preview branch to clean up
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  resolve:
+    name: Resolve environment
+    concurrency:
+      group: resolver-${{ github.workflow }}-${{ github.run_id }}
+      cancel-in-progress: false
+    if: vars.GITOPS_DEPLOYMENT_ENABLED == 'true' && (github.event_name == 'workflow_dispatch' || github.event.ref_type == 'branch')
+    runs-on: managed-socketless
+    outputs:
+      environment: ${{ steps.environment.outputs.identity }}
+      branch: ${{ steps.environment.outputs.branch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          persist-credentials: false
+      - id: environment
+        env:
+          BRANCH: ${{ inputs.branch || github.event.ref }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          result = json.loads(subprocess.check_output(["python3", "scripts/branch_environment.py", os.environ["BRANCH"]]))
+          if result["branch"] == "main" or not result["deployable"]:
+              raise SystemExit("Protected or excluded branch")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write("identity=" + result["environment_id"] + "\nbranch=" + result["branch"] + "\n")
+          PY
+  cleanup:
+    name: Destroy preview
+    environment: gitops-infrastructure
+    if: >-
+      github.repository == 'f5-sales-demo/gitops' &&
+      (github.event_name == 'delete' || github.event_name == 'workflow_dispatch')
+    needs: resolve
+    runs-on: gitops-terraform
+    concurrency:
+      group: terraform-${{ needs.resolve.outputs.environment }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/cache@3edfce9056124e459a23f683a21433670d47daca
+        with:
+          path: ${{ runner.temp }}/terraform-providers
+          key: terraform-providers-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('terraform/.terraform.lock.hcl') }}
+      - name: Destroy the deleted preview with its recovery configuration
+        env:
+          TF_PLUGIN_CACHE_ROOT: ${{ runner.temp }}/terraform-providers
+          GH_TOKEN: ${{ github.token }}
+          XCSH_API_URL: ${{ secrets.XCSH_API_URL }}
+          XCSH_API_TOKEN: ${{ secrets.XCSH_API_TOKEN }}
+          BRANCH: ${{ needs.resolve.outputs.branch }}
+        run: python3 scripts/deployment.py cleanup "$BRANCH"

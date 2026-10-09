@@ -1,0 +1,16 @@
+---
+title: Clean up a branch
+description: Destroy a deleted preview using its retained private configuration and state.
+sidebar:
+  order: 6
+---
+
+1. Delete the developer branch after its work is complete.
+2. Follow **Actions > Clean up deleted branch**.
+3. Confirm that the cleanup receipt reports `destroyed` for that environment.
+4. Confirm in the F5 Distributed Cloud console that the preview namespace, origin pool, and load balancer are gone.
+5. Request `http://gitops.f5-sales-demo.com/get` and confirm that main still responds.
+
+Cleanup restores the branch's exact retained Terraform configuration and variables. It uses that branch's isolated state and protects `main`. A recreated branch causes cleanup to stop before applying its destruction plan.
+
+To retry a failed cleanup, run **Clean up deleted branch** manually and provide the deleted branch name. Retained configuration and empty state support retry and later branch reuse. Do not delete the state namespace as part of branch cleanup.
