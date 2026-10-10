@@ -305,7 +305,11 @@ def request_json(
         str(remaining),
     ]
     if address is not None:
-        args += ["--resolve", urllib.parse.urlsplit(url).hostname + ":80:" + address]
+        hostname = urllib.parse.urlsplit(url).hostname
+        if hostname is None:
+            message = "Request URL has no hostname"
+            raise ValueError(message)
+        args += ["--resolve", hostname + ":80:" + address]
     if payload is not None:
         args += [
             "--header",
