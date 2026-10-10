@@ -29,4 +29,8 @@ The resolver generates nonsecret TFVARS JSON. Provider authentication comes from
 
 The Kubernetes backend receives `namespace=gitops-terraform-state`, a separate `secret_suffix` for each environment, and `in_cluster_config=true`. Native backend locking uses a Kubernetes Lease. State persists independently of disposable runner pods and working directories.
 
-The resources are `xcsh_namespace.environment`, `xcsh_origin_pool.httpbin`, and `xcsh_http_loadbalancer.httpbin`. Their explicit dependency references preserve namespace ownership and destruction order. Main uses unsuffixed names; previews suffix every owned resource with the branch identifier.
+The resources are `xcsh_namespace.environment`, `xcsh_origin_pool.httpbin`, and `xcsh_http_loadbalancer.httpbin`. Their explicit dependency references preserve
+namespace ownership and destruction order. Main uses namespace `gitops`; previews use namespace `gitops-<branch-id>`. Both environments name their origin pool
+and load balancer `gitops`. Only namespaces and public hostnames carry the branch suffix. The resolver exposes `namespace_name` separately from fixed
+`resource_name`, preserving environment identities and backend suffixes. Existing recovery archives remain compatible because cleanup restores their exact
+configuration.

@@ -16,6 +16,8 @@ class BranchTests(unittest.TestCase):
         self.assertEqual(resolve("main")["hostname"], "gitops.f5-sales-demo.com")
         for branch in [
             "sync/files",
+            "governance/reconcile-main",
+            "snapshot/source",
             "renovate/python",
             "dependabot/npm/x",
             "release/v1.0.0",
@@ -40,7 +42,10 @@ class BranchTests(unittest.TestCase):
             "a" * 100 + "b",
             "a" * 100 + "c",
         ]
-        names = [resolve(branch)["resource_name"] for branch in branches]
+        names = [resolve(branch)["namespace_name"] for branch in branches]
+        self.assertTrue(
+            all(resolve(branch)["resource_name"] == "gitops" for branch in branches)
+        )
         self.assertEqual(len(names), len(set(names)))
         for name in names:
             self.assertLessEqual(len(name), 44)

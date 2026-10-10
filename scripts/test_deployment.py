@@ -119,6 +119,9 @@ class DeploymentTests(unittest.TestCase):
         )
         patch.start()
         self.addCleanup(patch.stop)
+        summary = mock.patch.object(deployment, "plan_summary", return_value=[])
+        summary.start()
+        self.addCleanup(summary.stop)
 
     def test_superseded_plan_never_applies(self) -> None:
         """Verify superseded plan never applies."""
@@ -181,6 +184,77 @@ class DeploymentTests(unittest.TestCase):
         ):
             deployment.reconcile("feature/demo", mock.Mock())
         self.assertEqual(sum(args[0] == "apply" for args in calls), 2)
+
+    def test_failed_verification_retains_applied_recovery(self) -> None:
+        """Traffic expiry must leave the exact applied configuration available."""
+        stores = []
+        environment = deployment.resolve("feature/demo")
+        with (
+            mock.patch.object(
+                deployment, "verify_traffic", side_effect=RuntimeError("expired")
+            ),
+            mock.patch.object(
+                deployment,
+                "store",
+                side_effect=lambda _name, _archive, receipt: stores.append(
+                    copy.deepcopy(receipt)
+                ),
+            ),
+            self.assertRaisesRegex(RuntimeError, "expired"),
+        ):
+            deployment.verify_deployment(
+                Path("unused"),
+                environment,
+                b"archive",
+                receipt={"commit": "a" * 40},
+                lease=mock.Mock(),
+            )
+        self.assertEqual(stores[-1]["status"], "applied")
+        self.assertEqual(stores[-1]["commit"], "a" * 40)
+
+    def test_legacy_cleanup_restores_stored_object_names(self) -> None:
+        """Cleanup uses original configuration despite the new resolver names."""
+        environment = deployment.resolve("feature/demo")
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / "environment.auto.tfvars.json").write_text(
+                json.dumps(environment["tfvars"])
+            )
+            legacy = (
+                b'resource "xcsh_namespace" "environment" { name = "gitops-legacy" }'
+            )
+            (directory / "main.tf").write_bytes(legacy)
+            archive = deployment.recovery_archive(directory)
+        receipt = {
+            "branch": environment["branch"],
+            "environment_id": environment["environment_id"],
+            "repository": deployment.REPOSITORY,
+            "configuration_sha256": deployment.hashlib.sha256(archive).hexdigest(),
+        }
+        secret = {
+            "data": {
+                "configuration.tgz": deployment.base64.b64encode(archive).decode(),
+                "receipt.json": deployment.base64.b64encode(
+                    json.dumps(receipt).encode()
+                ).decode(),
+            }
+        }
+        restored = []
+        with (
+            mock.patch.object(deployment, "latest", return_value=None),
+            mock.patch.object(deployment, "get_secret", return_value=secret),
+            mock.patch.object(
+                deployment,
+                "initialize",
+                side_effect=lambda root, _env: restored.append(
+                    (root / "main.tf").read_bytes()
+                ),
+            ),
+            mock.patch.object(deployment, "terraform", return_value=0),
+            mock.patch.object(deployment, "store"),
+        ):
+            deployment.cleanup(environment["branch"], mock.Mock())
+        self.assertEqual(restored, [legacy])
 
     def test_main_and_recreated_branch_cleanup_are_protected(self) -> None:
         """Verify main and recreated branch cleanup are protected."""

@@ -28,7 +28,18 @@ run "preview_names" {
     environment_id = "feature-demo-0123456789ab"
   }
   assert {
-    condition     = output.hostname == "gitops-feature-demo-0123456789ab.f5-sales-demo.com" && alltrue([for name in values(output.resource_names) : name == "gitops-feature-demo-0123456789ab"])
-    error_message = "Every preview resource must use its isolated branch identity."
+    condition     = output.hostname == "gitops-feature-demo-0123456789ab.f5-sales-demo.com" && output.namespace == "gitops-feature-demo-0123456789ab" && output.resource_names.origin_pool == "gitops" && output.resource_names.http_loadbalancer == "gitops"
+    error_message = "Previews must isolate their namespace and hostname while keeping object names fixed."
+  }
+}
+
+run "preview_references" {
+  command = plan
+  variables {
+    environment_id = "feature-demo-fedcba987654"
+  }
+  assert {
+    condition     = xcsh_origin_pool.httpbin.namespace == xcsh_namespace.environment.name && xcsh_http_loadbalancer.httpbin.namespace == xcsh_namespace.environment.name && xcsh_http_loadbalancer.httpbin.routes[0].simple_route.origin_pools[0].pool.namespace == xcsh_namespace.environment.name && xcsh_http_loadbalancer.httpbin.routes[0].simple_route.origin_pools[0].pool.name == "gitops"
+    error_message = "Every object and pool reference must include the environment namespace."
   }
 }

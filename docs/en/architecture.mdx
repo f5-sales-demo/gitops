@@ -18,7 +18,7 @@ A request reaches a public F5 Distributed Cloud load balancer on HTTP port 80. T
 
 ## Identify an environment
 
-`main` uses `gitops.f5-sales-demo.com` and the resource name `gitops`. A developer branch uses `gitops-<branch-id>.f5-sales-demo.com`. Its namespace, origin pool, and load balancer all include the same identifier.
+`main` uses `gitops.f5-sales-demo.com` and the resource name `gitops`. A developer branch uses `gitops-<branch-id>.f5-sales-demo.com`. Its namespace includes the branch identifier; the origin pool and load balancer are both named `gitops` inside that namespace. Every object reference includes the environment namespace.
 
 The canonical resolver normalizes up to 24 characters to lowercase ASCII letters, digits, and hyphens, then appends 12 hexadecimal characters from the SHA-256 hash of the original UTF-8 branch name. The hash distinguishes punctuation, Unicode, and truncation collisions. An empty normalized name uses `branch`.
 
@@ -28,7 +28,7 @@ Run the resolver to see the exact identity:
 python3 scripts/branch_environment.py 'feature/my-demo'
 ```
 
-Governance sync, dependency-update, release, content snapshot, and Pages branches are excluded from infrastructure deployment.
+Governance sync, dependency-update, release, snapshot, content snapshot, and Pages branches are excluded from infrastructure deployment.
 
 ## Preserve state
 

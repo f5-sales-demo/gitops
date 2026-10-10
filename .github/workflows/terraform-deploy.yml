@@ -2,8 +2,9 @@
 name: Deploy branch environment
 on:
   push:
-    branches-ignore: ['sync/**', 'renovate/**', 'dependabot/**', 'release/**', 'content-*', gh-pages]
+    branches-ignore: ['sync/**', 'governance/**', 'snapshot/**', 'renovate/**', 'dependabot/**', 'release/**', 'content-*', gh-pages]
     paths: ['terraform/**', 'scripts/branch_environment.py', 'scripts/deployment.py', '.github/workflows/terraform-*.yml']
+  create:
   workflow_dispatch:
     inputs:
       branch:
@@ -21,8 +22,17 @@ jobs:
       cancel-in-progress: false
     if: >-
       github.repository == 'f5-sales-demo/gitops' &&
-      ((inputs.branch || github.ref_name) == 'main' && vars.GITOPS_MAIN_ENABLED == 'true' ||
-      (inputs.branch || github.ref_name) != 'main' && vars.GITOPS_PREVIEW_ENABLED == 'true')
+      (github.event_name != 'create' || github.event.ref_type == 'branch') &&
+      !startsWith(inputs.branch || (github.event_name == 'create' && github.event.ref) || github.ref_name, 'governance/') &&
+      !startsWith(inputs.branch || (github.event_name == 'create' && github.event.ref) || github.ref_name, 'sync/') &&
+      !startsWith(inputs.branch || (github.event_name == 'create' && github.event.ref) || github.ref_name, 'renovate/') &&
+      !startsWith(inputs.branch || (github.event_name == 'create' && github.event.ref) || github.ref_name, 'dependabot/') &&
+      !startsWith(inputs.branch || (github.event_name == 'create' && github.event.ref) || github.ref_name, 'release/') &&
+      !startsWith(inputs.branch || (github.event_name == 'create' && github.event.ref) || github.ref_name, 'snapshot/') &&
+      !startsWith(inputs.branch || (github.event_name == 'create' && github.event.ref) || github.ref_name, 'content-') &&
+      !startsWith(inputs.branch || (github.event_name == 'create' && github.event.ref) || github.ref_name, 'gh-pages') &&
+      ((inputs.branch || (github.event_name == 'create' && github.event.ref) || github.ref_name) == 'main' && vars.GITOPS_MAIN_ENABLED == 'true' ||
+      (inputs.branch || (github.event_name == 'create' && github.event.ref) || github.ref_name) != 'main' && vars.GITOPS_PREVIEW_ENABLED == 'true')
     runs-on: managed-socketless
     outputs:
       environment: ${{ steps.environment.outputs.identity }}
@@ -34,7 +44,7 @@ jobs:
           persist-credentials: false
       - id: environment
         env:
-          BRANCH: ${{ inputs.branch || github.ref_name }}
+          BRANCH: ${{ inputs.branch || (github.event_name == 'create' && github.event.ref) || github.ref_name }}
         run: |
           python3 - <<'PY'
           import json
@@ -51,7 +61,7 @@ jobs:
     environment: gitops-infrastructure
     if: >-
       github.repository == 'f5-sales-demo/gitops' &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      (github.event_name == 'push' || (github.event_name == 'create' && github.event.ref_type == 'branch') || github.event_name == 'workflow_dispatch')
     needs: resolve
     runs-on: gitops-terraform
     concurrency:

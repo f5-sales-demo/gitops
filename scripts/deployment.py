@@ -339,6 +339,34 @@ def verify_traffic(hostname: str, lease: EnvironmentLease) -> dict:
     raise RuntimeError(message)
 
 
+def plan_summary(directory: Path, plan: Path) -> list[dict]:
+    """Return only owned resource names and actions from the private saved plan."""
+    result = subprocess.run(  # noqa: S603
+        [TERRAFORM, "-chdir=" + str(directory), "show", "-json", str(plan)],
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        message = "Unable to inspect the private saved plan"
+        raise RuntimeError(message)
+    value = json.loads(result.stdout)
+    return [
+        {
+            "address": item["address"],
+            "actions": item["change"]["actions"],
+            "name": (item["change"].get("after") or {}).get("name"),
+            "namespace": (item["change"].get("after") or {}).get("namespace"),
+        }
+        for item in value.get("resource_changes", [])
+        if item["address"]
+        in {
+            "xcsh_namespace.environment",
+            "xcsh_origin_pool.httpbin",
+            "xcsh_http_loadbalancer.httpbin",
+        }
+    ]
+
+
 def reconcile(branch: str, lease: EnvironmentLease) -> None:
     """Replan superseded commits and reconcile newer work after each apply."""
     environment = resolve(branch)
@@ -393,6 +421,8 @@ def reconcile(branch: str, lease: EnvironmentLease) -> None:
                     (directory / ".terraform.lock.hcl").read_bytes()
                 ).hexdigest(),
                 "status": "applying",
+                "plan_exit_code": code,
+                "plan_resources": plan_summary(directory, plan),
                 "run_id": os.environ.get("GITHUB_RUN_ID", "manual"),
             }
             # Keep prior receipts and the complete newest configuration before mutation.
@@ -402,62 +432,115 @@ def reconcile(branch: str, lease: EnvironmentLease) -> None:
             if latest(branch) != commit:
                 print("Superseded configuration discarded before apply")
                 continue
-            lease.check()
-            if code == PLAN_CHANGED:
-                terraform(
-                    directory, ["apply", "-input=false", "-lock-timeout=10m", str(plan)]
-                )
-            receipt["status"] = "applied"
-            receipt["infrastructure_status"] = "applied"
-            receipt["namespace"] = environment.get(
-                "namespace_name", environment["resource_name"]
-            )
-            receipt["hostname"] = environment["hostname"]
-            store(secret_name, archive, receipt)
-            print(
-                json.dumps(
-                    {
-                        "status": "applied",
-                        "commit": commit,
-                        "environment_id": environment["environment_id"],
-                    },
-                    sort_keys=True,
-                )
-            )
-            verification = verify_traffic(environment["hostname"], lease)
-            if latest(branch) != commit:
-                print("New branch commit detected after verification; reconciling")
-                continue
-            follow_up = terraform(
-                directory,
-                ["plan", "-input=false", "-lock-timeout=10m", "-detailed-exitcode"],
-                expected=(0, 2),
-            )
-            if follow_up != 0:
-                message = "Post-apply plan has changes; applied recovery configuration is retained"
-                raise RuntimeError(message)
-            if latest(branch) != commit:
-                print("New branch commit detected after follow-up plan; reconciling")
-                continue
-            receipt.update(verification)
-            receipt["follow_up_plan_exit_code"] = follow_up
-            receipt["status"] = "verified"
-            store(secret_name, archive, receipt)
-            store(secret_name + "-" + commit[:12], archive, receipt)
-            print(
-                json.dumps(
-                    {
-                        "environment_id": environment["environment_id"],
-                        "commit": commit,
-                        "hostname": environment["hostname"],
-                        "status": "verified",
-                        "verified_at": receipt["verified_at"],
-                        "follow_up_plan_exit_code": follow_up,
-                    },
-                    sort_keys=True,
-                )
-            )
-            return
+            apply_plan(directory, plan, code, lease, receipt)
+            if verify_deployment(
+                directory, environment, archive, receipt=receipt, lease=lease
+            ):
+                return
+
+
+def apply_plan(
+    directory: Path, plan: Path, code: int, lease: EnvironmentLease, receipt: dict
+) -> None:
+    """Log sanitized writer intervals while enforcing the transaction Lease."""
+    lease.check()
+    if code != PLAN_CHANGED:
+        return
+    identity = {
+        "environment_id": receipt["environment_id"],
+        "commit": receipt["commit"],
+        "run_id": receipt["run_id"],
+    }
+    print(
+        json.dumps(
+            {
+                **identity,
+                "status": "apply_started",
+                "timestamp": datetime.now(UTC).isoformat(),
+            },
+            sort_keys=True,
+        ),
+        flush=True,
+    )
+    terraform(directory, ["apply", "-input=false", "-lock-timeout=10m", str(plan)])
+    print(
+        json.dumps(
+            {
+                **identity,
+                "status": "apply_finished",
+                "timestamp": datetime.now(UTC).isoformat(),
+            },
+            sort_keys=True,
+        ),
+        flush=True,
+    )
+
+
+def verify_deployment(
+    directory: Path,
+    environment: dict,
+    archive: bytes,
+    *,
+    receipt: dict,
+    lease: EnvironmentLease,
+) -> bool:
+    """Retain applied progress, verify traffic and drift, and record current success."""
+    branch = environment["branch"]
+    commit = receipt["commit"]
+    secret_name = "gitops-config-" + environment["environment_id"]
+    receipt["status"] = "applied"
+    receipt["infrastructure_status"] = "applied"
+    receipt["namespace"] = environment.get(
+        "namespace_name", environment["resource_name"]
+    )
+    receipt["hostname"] = environment["hostname"]
+    store(secret_name, archive, receipt)
+    print(
+        json.dumps(
+            {
+                "status": "applied",
+                "commit": commit,
+                "environment_id": environment["environment_id"],
+            },
+            sort_keys=True,
+        )
+    )
+    verification = verify_traffic(environment["hostname"], lease)
+    if latest(branch) != commit:
+        print("New branch commit detected after verification; reconciling")
+        return False
+    follow_up = terraform(
+        directory,
+        ["plan", "-input=false", "-lock-timeout=10m", "-detailed-exitcode"],
+        expected=(0, 2),
+    )
+    if follow_up != 0:
+        message = (
+            "Post-apply plan has changes; applied recovery configuration is retained"
+        )
+        raise RuntimeError(message)
+    if latest(branch) != commit:
+        print("New branch commit detected after follow-up plan; reconciling")
+        return False
+    receipt.update(verification)
+    receipt["follow_up_plan_exit_code"] = follow_up
+    receipt["status"] = "verified"
+    store(secret_name, archive, receipt)
+    store(secret_name + "-" + commit[:12], archive, receipt)
+    print(
+        json.dumps(
+            {
+                "environment_id": environment["environment_id"],
+                "commit": commit,
+                "hostname": environment["hostname"],
+                "status": "verified",
+                "verified_at": receipt["verified_at"],
+                "follow_up_plan_exit_code": follow_up,
+            },
+            sort_keys=True,
+        )
+    )
+    return True
 
 
 def cleanup(branch: str, lease: EnvironmentLease) -> None:
