@@ -5,6 +5,32 @@ sidebar:
   order: 9
 ---
 
+The current deployment qualification uses released xcsh provider `15.5.2`. Main passed the deployment gate before preview activation. Branch creation then deployed one preview directly from main, followed by ten concurrent branches with three rapid Terraform description commits each.
+
+| Gate | Result |
+| --- | --- |
+| Main | Namespace `gitops` remained owned at `xcsh_namespace.environment`; the namespace, origin pool, and load balancer had zero-change plans. |
+| Branch creation | A branch created from qualified main deployed without a Terraform edit. Its plan created one unique namespace and both namespace-scoped objects named `gitops`. |
+| Traffic | Each deployment required DNS, GET marker echo, POST JSON echo, upstream URL and Host `httpbin.org`, and three consecutive successes. Every verified receipt includes its commit and timestamp. |
+| Isolation | Ten branches covering punctuation, case, Unicode, and truncation collisions had distinct namespaces, hostnames, and backend suffixes, with fixed object names. All final receipts matched the latest branch commits and follow-up plans returned exit code 0. |
+| Writers | Ten actual applies had no overlapping writers, unfinished applies, or cancelled active deployments. Four obsolete jobs were replaced before runner assignment. |
+| Cleanup | All eleven test previews were destroyed. Their namespace and API objects were absent, retained states were empty, and main remained healthy. |
+| Governance | Canonical validators permit only the exact same-repository deployment job's push, branch-create, and manual guards. Tag creation and fork PR deployment remain excluded. |
+
+[Read the sanitized acceptance receipt](../namespace-acceptance/).
+
+Implementation: [PR 9](https://github.com/f5-sales-demo/gitops/pull/9), [PR 11](https://github.com/f5-sales-demo/gitops/pull/11), and [PR 15](https://github.com/f5-sales-demo/gitops/pull/15).
+
+Canonical route guards and manifest: [docs-control PR 2476](https://github.com/f5-sales-demo/docs-control/pull/2476) and [PR 2477](https://github.com/f5-sales-demo/docs-control/pull/2477). [GitOps PR 13](https://github.com/f5-sales-demo/gitops/pull/13) propagated them.
+
+## Account for DNS propagation
+
+The first preview's managed DNS existed at the authoritative servers while a recursive resolver retained an earlier negative answer. Its original workflow
+passed within the ten-minute retry window. Verification now supports a bounded fresh public DNS fallback and connects to the returned public address while
+preserving the environment hostname. Live fallback checks passed without changing DNS infrastructure or runner capacity.
+
+## Historical qualification
+
 The first working deployment was verified on October 9, 2026, using signed xcsh provider `15.5.2`. The deployed main commit was `08875aa913f4b0b01d738c0e02e56ec7d98ef047`.
 
 | Gate | Evidence |

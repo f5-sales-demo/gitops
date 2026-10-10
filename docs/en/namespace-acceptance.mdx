@@ -1,0 +1,699 @@
+---
+title: Namespace acceptance receipt
+description: Sanitized identities and outcomes from live branch-isolation qualification.
+sidebar:
+  order: 10
+---
+
+This receipt records qualified main, branch creation, ten concurrent branches, live traffic, writer isolation, and cleanup. Raw API responses, credentials, Terraform plans, state, and recovery configurations remain private.
+
+```json
+{
+  "cleanup": {
+    "empty_retained_states": 11,
+    "first_preview_api_absent": true,
+    "main_healthy": true,
+    "previews_destroyed": 11,
+    "ten_preview_api_absence": [
+      {
+        "branch": "acceptance10/a-b",
+        "namespace": "gitops-acceptance10-a-b-101415ef3fff",
+        "objects": [
+          {
+            "absent": true,
+            "path": "/web/namespaces/gitops-acceptance10-a-b-101415ef3fff"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-a-b-101415ef3fff/origin_pools/gitops"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-a-b-101415ef3fff/http_loadbalancers/gitops"
+          }
+        ],
+        "state_count": 0,
+        "status": "destroyed"
+      },
+      {
+        "branch": "acceptance10/a_b",
+        "namespace": "gitops-acceptance10-a-b-2da39578e7fc",
+        "objects": [
+          {
+            "absent": true,
+            "path": "/web/namespaces/gitops-acceptance10-a-b-2da39578e7fc"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-a-b-2da39578e7fc/origin_pools/gitops"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-a-b-2da39578e7fc/http_loadbalancers/gitops"
+          }
+        ],
+        "state_count": 0,
+        "status": "destroyed"
+      },
+      {
+        "branch": "acceptance10/a.b",
+        "namespace": "gitops-acceptance10-a-b-535bd9b5240f",
+        "objects": [
+          {
+            "absent": true,
+            "path": "/web/namespaces/gitops-acceptance10-a-b-535bd9b5240f"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-a-b-535bd9b5240f/origin_pools/gitops"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-a-b-535bd9b5240f/http_loadbalancers/gitops"
+          }
+        ],
+        "state_count": 0,
+        "status": "destroyed"
+      },
+      {
+        "branch": "acceptance10/A-B",
+        "namespace": "gitops-acceptance10-a-b-d717422d84b4",
+        "objects": [
+          {
+            "absent": true,
+            "path": "/web/namespaces/gitops-acceptance10-a-b-d717422d84b4"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-a-b-d717422d84b4/origin_pools/gitops"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-a-b-d717422d84b4/http_loadbalancers/gitops"
+          }
+        ],
+        "state_count": 0,
+        "status": "destroyed"
+      },
+      {
+        "branch": "acceptance10/d\u00e9mo",
+        "namespace": "gitops-acceptance10-demo-08a2b9e02e6d",
+        "objects": [
+          {
+            "absent": true,
+            "path": "/web/namespaces/gitops-acceptance10-demo-08a2b9e02e6d"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-demo-08a2b9e02e6d/origin_pools/gitops"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-demo-08a2b9e02e6d/http_loadbalancers/gitops"
+          }
+        ],
+        "state_count": 0,
+        "status": "destroyed"
+      },
+      {
+        "branch": "acceptance10/demo",
+        "namespace": "gitops-acceptance10-demo-42ec774d80b0",
+        "objects": [
+          {
+            "absent": true,
+            "path": "/web/namespaces/gitops-acceptance10-demo-42ec774d80b0"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-demo-42ec774d80b0/origin_pools/gitops"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-demo-42ec774d80b0/http_loadbalancers/gitops"
+          }
+        ],
+        "state_count": 0,
+        "status": "destroyed"
+      },
+      {
+        "branch": "acceptance10/\u90e8\u7f72",
+        "namespace": "gitops-acceptance10-f0781de70080",
+        "objects": [
+          {
+            "absent": true,
+            "path": "/web/namespaces/gitops-acceptance10-f0781de70080"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-f0781de70080/origin_pools/gitops"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-f0781de70080/http_loadbalancers/gitops"
+          }
+        ],
+        "state_count": 0,
+        "status": "destroyed"
+      },
+      {
+        "branch": "acceptance10/\ud83d\ude80",
+        "namespace": "gitops-acceptance10-a8c733ea1f21",
+        "objects": [
+          {
+            "absent": true,
+            "path": "/web/namespaces/gitops-acceptance10-a8c733ea1f21"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-a8c733ea1f21/origin_pools/gitops"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-a8c733ea1f21/http_loadbalancers/gitops"
+          }
+        ],
+        "state_count": 0,
+        "status": "destroyed"
+      },
+      {
+        "branch": "acceptance10/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab",
+        "namespace": "gitops-acceptance10-aaaaaaaaaaa-5735dfbff977",
+        "objects": [
+          {
+            "absent": true,
+            "path": "/web/namespaces/gitops-acceptance10-aaaaaaaaaaa-5735dfbff977"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-aaaaaaaaaaa-5735dfbff977/origin_pools/gitops"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-aaaaaaaaaaa-5735dfbff977/http_loadbalancers/gitops"
+          }
+        ],
+        "state_count": 0,
+        "status": "destroyed"
+      },
+      {
+        "branch": "acceptance10/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac",
+        "namespace": "gitops-acceptance10-aaaaaaaaaaa-7ceced6be50c",
+        "objects": [
+          {
+            "absent": true,
+            "path": "/web/namespaces/gitops-acceptance10-aaaaaaaaaaa-7ceced6be50c"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-aaaaaaaaaaa-7ceced6be50c/origin_pools/gitops"
+          },
+          {
+            "absent": true,
+            "path": "/config/namespaces/gitops-acceptance10-aaaaaaaaaaa-7ceced6be50c/http_loadbalancers/gitops"
+          }
+        ],
+        "state_count": 0,
+        "status": "destroyed"
+      }
+    ]
+  },
+  "first_preview": {
+    "branch": "acceptance10/first",
+    "commit": "a09aa2216092a85bb55d9f55692059de5d29fb8b",
+    "environment_id": "acceptance10-first-8dc65ee620a7",
+    "follow_up_plan_exit_code": 0,
+    "hostname": "gitops-acceptance10-first-8dc65ee620a7.f5-sales-demo.com",
+    "namespace": "gitops-acceptance10-first-8dc65ee620a7",
+    "plan_resources": [
+      {
+        "actions": [
+          "create"
+        ],
+        "address": "xcsh_http_loadbalancer.httpbin",
+        "name": "gitops",
+        "namespace": "gitops-acceptance10-first-8dc65ee620a7"
+      },
+      {
+        "actions": [
+          "create"
+        ],
+        "address": "xcsh_namespace.environment",
+        "name": "gitops-acceptance10-first-8dc65ee620a7",
+        "namespace": null
+      },
+      {
+        "actions": [
+          "create"
+        ],
+        "address": "xcsh_origin_pool.httpbin",
+        "name": "gitops",
+        "namespace": "gitops-acceptance10-first-8dc65ee620a7"
+      }
+    ],
+    "run_id": "38009057063",
+    "status": "verified",
+    "verified_at": "2026-10-10T00:33:07.736144Z"
+  },
+  "governance": {
+    "gitops_managed_files": 63,
+    "gitops_parity": true,
+    "required_absent_paths": 16,
+    "source_commit": "cac9cf7fe3f0ab3319914d1e47b0abbebd5b5896",
+    "validator_blobs": {
+      "scripts/audit-runner-workflows.py": "e6504b642491f26aff9ed6ac0716db9349cb97dc",
+      "scripts/workflow_security_validator.py": "3b802b960e9c85e3995257cb4aa806c0a8d1a99b"
+    }
+  },
+  "limits": {
+    "runner_capacity_and_cold_assignment": "https://github.com/f5-sales-demo/self-hosted-runner/issues/245"
+  },
+  "main": {
+    "branch": "main",
+    "commit": "1f5499ed638f6eef44d2781c3d81c8839cd529a8",
+    "environment_id": "main",
+    "follow_up_plan_exit_code": 0,
+    "hostname": "gitops.f5-sales-demo.com",
+    "namespace": "gitops",
+    "plan_resources": [
+      {
+        "actions": [
+          "no-op"
+        ],
+        "address": "xcsh_http_loadbalancer.httpbin",
+        "name": "gitops",
+        "namespace": "gitops"
+      },
+      {
+        "actions": [
+          "no-op"
+        ],
+        "address": "xcsh_namespace.environment",
+        "name": "gitops",
+        "namespace": ""
+      },
+      {
+        "actions": [
+          "no-op"
+        ],
+        "address": "xcsh_origin_pool.httpbin",
+        "name": "gitops",
+        "namespace": "gitops"
+      }
+    ],
+    "run_id": "38010458540",
+    "status": "verified",
+    "verified_at": "2026-10-10T00:47:55.142070Z"
+  },
+  "previews": [
+    {
+      "branch": "acceptance10/a-b",
+      "commit": "e4f0d412a351f763feee463be0232afae969831f",
+      "environment_id": "acceptance10-a-b-101415ef3fff",
+      "follow_up_plan_exit_code": 0,
+      "hostname": "gitops-acceptance10-a-b-101415ef3fff.f5-sales-demo.com",
+      "namespace": "gitops-acceptance10-a-b-101415ef3fff",
+      "plan_resources": [
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_http_loadbalancer.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-a-b-101415ef3fff"
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_namespace.environment",
+          "name": "gitops-acceptance10-a-b-101415ef3fff",
+          "namespace": ""
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_origin_pool.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-a-b-101415ef3fff"
+        }
+      ],
+      "run_id": "38009611847",
+      "status": "verified",
+      "verified_at": "2026-10-10T00:44:32.523709Z"
+    },
+    {
+      "branch": "acceptance10/a_b",
+      "commit": "ee582bcf3e0c94d944fa73b34c9584eaa733d5d2",
+      "environment_id": "acceptance10-a-b-2da39578e7fc",
+      "follow_up_plan_exit_code": 0,
+      "hostname": "gitops-acceptance10-a-b-2da39578e7fc.f5-sales-demo.com",
+      "namespace": "gitops-acceptance10-a-b-2da39578e7fc",
+      "plan_resources": [
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_http_loadbalancer.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-a-b-2da39578e7fc"
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_namespace.environment",
+          "name": "gitops-acceptance10-a-b-2da39578e7fc",
+          "namespace": ""
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_origin_pool.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-a-b-2da39578e7fc"
+        }
+      ],
+      "run_id": "38009611316",
+      "status": "verified",
+      "verified_at": "2026-10-10T00:41:43.045219Z"
+    },
+    {
+      "branch": "acceptance10/a.b",
+      "commit": "ee582bcf3e0c94d944fa73b34c9584eaa733d5d2",
+      "environment_id": "acceptance10-a-b-535bd9b5240f",
+      "follow_up_plan_exit_code": 0,
+      "hostname": "gitops-acceptance10-a-b-535bd9b5240f.f5-sales-demo.com",
+      "namespace": "gitops-acceptance10-a-b-535bd9b5240f",
+      "plan_resources": [
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_http_loadbalancer.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-a-b-535bd9b5240f"
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_namespace.environment",
+          "name": "gitops-acceptance10-a-b-535bd9b5240f",
+          "namespace": ""
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_origin_pool.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-a-b-535bd9b5240f"
+        }
+      ],
+      "run_id": "38009610718",
+      "status": "verified",
+      "verified_at": "2026-10-10T00:42:22.985208Z"
+    },
+    {
+      "branch": "acceptance10/A-B",
+      "commit": "ee582bcf3e0c94d944fa73b34c9584eaa733d5d2",
+      "environment_id": "acceptance10-a-b-d717422d84b4",
+      "follow_up_plan_exit_code": 0,
+      "hostname": "gitops-acceptance10-a-b-d717422d84b4.f5-sales-demo.com",
+      "namespace": "gitops-acceptance10-a-b-d717422d84b4",
+      "plan_resources": [
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_http_loadbalancer.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-a-b-d717422d84b4"
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_namespace.environment",
+          "name": "gitops-acceptance10-a-b-d717422d84b4",
+          "namespace": ""
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_origin_pool.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-a-b-d717422d84b4"
+        }
+      ],
+      "run_id": "38009610995",
+      "status": "verified",
+      "verified_at": "2026-10-10T00:44:49.175746Z"
+    },
+    {
+      "branch": "acceptance10/d\u00e9mo",
+      "commit": "ee582bcf3e0c94d944fa73b34c9584eaa733d5d2",
+      "environment_id": "acceptance10-demo-08a2b9e02e6d",
+      "follow_up_plan_exit_code": 0,
+      "hostname": "gitops-acceptance10-demo-08a2b9e02e6d.f5-sales-demo.com",
+      "namespace": "gitops-acceptance10-demo-08a2b9e02e6d",
+      "plan_resources": [
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_http_loadbalancer.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-demo-08a2b9e02e6d"
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_namespace.environment",
+          "name": "gitops-acceptance10-demo-08a2b9e02e6d",
+          "namespace": ""
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_origin_pool.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-demo-08a2b9e02e6d"
+        }
+      ],
+      "run_id": "38009611030",
+      "status": "verified",
+      "verified_at": "2026-10-10T00:40:48.636177Z"
+    },
+    {
+      "branch": "acceptance10/demo",
+      "commit": "e4f0d412a351f763feee463be0232afae969831f",
+      "environment_id": "acceptance10-demo-42ec774d80b0",
+      "follow_up_plan_exit_code": 0,
+      "hostname": "gitops-acceptance10-demo-42ec774d80b0.f5-sales-demo.com",
+      "namespace": "gitops-acceptance10-demo-42ec774d80b0",
+      "plan_resources": [
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_http_loadbalancer.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-demo-42ec774d80b0"
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_namespace.environment",
+          "name": "gitops-acceptance10-demo-42ec774d80b0",
+          "namespace": ""
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_origin_pool.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-demo-42ec774d80b0"
+        }
+      ],
+      "run_id": "38009612439",
+      "status": "verified",
+      "verified_at": "2026-10-10T00:38:28.365918Z"
+    },
+    {
+      "branch": "acceptance10/\u90e8\u7f72",
+      "commit": "e4f0d412a351f763feee463be0232afae969831f",
+      "environment_id": "acceptance10-f0781de70080",
+      "follow_up_plan_exit_code": 0,
+      "hostname": "gitops-acceptance10-f0781de70080.f5-sales-demo.com",
+      "namespace": "gitops-acceptance10-f0781de70080",
+      "plan_resources": [
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_http_loadbalancer.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-f0781de70080"
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_namespace.environment",
+          "name": "gitops-acceptance10-f0781de70080",
+          "namespace": ""
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_origin_pool.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-f0781de70080"
+        }
+      ],
+      "run_id": "38009612311",
+      "status": "verified",
+      "verified_at": "2026-10-10T00:42:59.758428Z"
+    },
+    {
+      "branch": "acceptance10/\ud83d\ude80",
+      "commit": "e4f0d412a351f763feee463be0232afae969831f",
+      "environment_id": "acceptance10-a8c733ea1f21",
+      "follow_up_plan_exit_code": 0,
+      "hostname": "gitops-acceptance10-a8c733ea1f21.f5-sales-demo.com",
+      "namespace": "gitops-acceptance10-a8c733ea1f21",
+      "plan_resources": [
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_http_loadbalancer.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-a8c733ea1f21"
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_namespace.environment",
+          "name": "gitops-acceptance10-a8c733ea1f21",
+          "namespace": ""
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_origin_pool.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-a8c733ea1f21"
+        }
+      ],
+      "run_id": "38009611664",
+      "status": "verified",
+      "verified_at": "2026-10-10T00:43:51.943876Z"
+    },
+    {
+      "branch": "acceptance10/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab",
+      "commit": "e4f0d412a351f763feee463be0232afae969831f",
+      "environment_id": "acceptance10-aaaaaaaaaaa-5735dfbff977",
+      "follow_up_plan_exit_code": 0,
+      "hostname": "gitops-acceptance10-aaaaaaaaaaa-5735dfbff977.f5-sales-demo.com",
+      "namespace": "gitops-acceptance10-aaaaaaaaaaa-5735dfbff977",
+      "plan_resources": [
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_http_loadbalancer.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-aaaaaaaaaaa-5735dfbff977"
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_namespace.environment",
+          "name": "gitops-acceptance10-aaaaaaaaaaa-5735dfbff977",
+          "namespace": ""
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_origin_pool.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-aaaaaaaaaaa-5735dfbff977"
+        }
+      ],
+      "run_id": "38009612124",
+      "status": "verified",
+      "verified_at": "2026-10-10T00:43:08.303832Z"
+    },
+    {
+      "branch": "acceptance10/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac",
+      "commit": "b86fdb8cd241de5b6e8d2c47933f0aa9fd63b23c",
+      "environment_id": "acceptance10-aaaaaaaaaaa-7ceced6be50c",
+      "follow_up_plan_exit_code": 0,
+      "hostname": "gitops-acceptance10-aaaaaaaaaaa-7ceced6be50c.f5-sales-demo.com",
+      "namespace": "gitops-acceptance10-aaaaaaaaaaa-7ceced6be50c",
+      "plan_resources": [
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_http_loadbalancer.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-aaaaaaaaaaa-7ceced6be50c"
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_namespace.environment",
+          "name": "gitops-acceptance10-aaaaaaaaaaa-7ceced6be50c",
+          "namespace": ""
+        },
+        {
+          "actions": [
+            "no-op"
+          ],
+          "address": "xcsh_origin_pool.httpbin",
+          "name": "gitops",
+          "namespace": "gitops-acceptance10-aaaaaaaaaaa-7ceced6be50c"
+        }
+      ],
+      "run_id": "38009611537",
+      "status": "verified",
+      "verified_at": "2026-10-10T00:44:20.864171Z"
+    }
+  ],
+  "provider": "15.5.2",
+  "qualification": {
+    "actual_applies": 10,
+    "all_follow_up_plans_exit_code": 0,
+    "branches": 10,
+    "cancelled_active_deployments": 0,
+    "dns_get_post_upstream_three_consecutive_successes": true,
+    "fixed_load_balancer_name": "gitops",
+    "fixed_origin_pool_name": "gitops",
+    "latest_head_convergence": true,
+    "overlapping_writers": 0,
+    "queued_runs_replaced_before_assignment": 4,
+    "rapid_description_commits_per_branch": 3,
+    "unique_hostnames": 10,
+    "unique_namespaces": 10,
+    "unique_state_suffixes": 10
+  },
+  "repository": "f5-sales-demo/gitops",
+  "schema_version": 1
+}
+```
