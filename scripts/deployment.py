@@ -251,8 +251,10 @@ def resolve_hostname(hostname: str, deadline: float) -> str:
             [
                 shutil.which("python3") or "/usr/bin/python3",
                 "-c",
-                "import socket,sys; "
-                "print(socket.getaddrinfo(sys.argv[1],80,socket.AF_INET)[0][4][0])",
+                (
+                    "import socket,sys; "
+                    "print(socket.getaddrinfo(sys.argv[1],80,socket.AF_INET)[0][4][0])"
+                ),
                 hostname,
             ],
             capture_output=True,
