@@ -21,6 +21,7 @@ import urllib.request
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Self
 
 from branch_environment import resolve
 
@@ -29,6 +30,10 @@ STATE_NAMESPACE = "gitops-terraform-state"
 NOT_FOUND = 404
 SECRET_BUDGET = 700_000
 PLAN_CHANGED = 2
+VERIFICATION_SECONDS = 600
+VERIFICATION_INTERVAL = 10
+VERIFICATION_SUCCESSES = 3
+REQUEST_SECONDS = 15
 KUBECTL = shutil.which("kubectl") or "/usr/bin/kubectl"
 TERRAFORM = shutil.which("terraform") or "/usr/local/bin/terraform"
 
@@ -238,6 +243,102 @@ def initialize(directory: Path, environment: dict) -> None:
     )
 
 
+def resolve_hostname(hostname: str, deadline: float) -> None:
+    """Resolve DNS in a child with a bounded execution time."""
+    subprocess.run(  # noqa: S603
+        [
+            shutil.which("python3") or "/usr/bin/python3",
+            "-c",
+            "import socket,sys; socket.getaddrinfo(sys.argv[1], 80)",
+            hostname,
+        ],
+        capture_output=True,
+        timeout=max(0.001, min(REQUEST_SECONDS, deadline - time.monotonic())),
+        check=True,
+    )
+
+
+def request_json(url: str, deadline: float, payload: dict | None = None) -> dict:
+    """Fetch only the public demo endpoint; keep responses in memory."""
+    remaining = max(0.001, min(REQUEST_SECONDS, deadline - time.monotonic()))
+    args = [
+        shutil.which("curl") or "/usr/bin/curl",
+        "--fail",
+        "--silent",
+        "--noproxy",
+        "*",
+        "--max-time",
+        str(remaining),
+    ]
+    if payload is not None:
+        args += [
+            "--header",
+            "Content-Type: application/json",
+            "--data-binary",
+            json.dumps(payload),
+        ]
+    result = subprocess.run(  # noqa: S603
+        [*args, url], capture_output=True, timeout=remaining, check=True
+    )
+    return json.loads(result.stdout)
+
+
+def traffic_check(hostname: str, deadline: float) -> None:
+    """Prove DNS, GET argument, POST body, and upstream Host rewriting."""
+    if not hostname.endswith(".f5-sales-demo.com") or "/" in hostname:
+        message = "Unexpected verification hostname"
+        raise ValueError(message)
+    resolve_hostname(hostname, deadline)
+    marker = uuid.uuid4().hex
+    payload = {"gitops_marker": marker}
+    response = request_json(
+        "http://" + hostname + "/get?gitops_marker=" + marker, deadline
+    )
+    posted = request_json("http://" + hostname + "/anything", deadline, payload)
+    if response.get("args") != payload or posted.get("json") != payload:
+        message = "HTTPBin did not echo the synthetic markers"
+        raise ValueError(message)
+    for result, path in [(response, "/get"), (posted, "/anything")]:
+        upstream = urllib.parse.urlsplit(result.get("url", ""))
+        if (
+            upstream.hostname != "httpbin.org"
+            or upstream.path != path
+            or result.get("headers", {}).get("Host") != "httpbin.org"
+        ):
+            message = "HTTPBin upstream identity mismatch"
+            raise ValueError(message)
+
+
+def verify_traffic(hostname: str, lease: EnvironmentLease) -> dict:
+    """Require three consecutive successes within ten minutes."""
+    deadline = time.monotonic() + VERIFICATION_SECONDS
+    streak = 0
+    while time.monotonic() < deadline:
+        lease.check()
+        try:
+            traffic_check(hostname, deadline)
+        except (
+            ValueError,
+            OSError,
+            subprocess.SubprocessError,
+            TypeError,
+            AttributeError,
+        ):
+            streak = 0
+        else:
+            streak += 1
+            if streak == VERIFICATION_SUCCESSES:
+                return {
+                    "verified_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+                    "consecutive_successes": streak,
+                }
+        remaining = deadline - time.monotonic()
+        if remaining > 0:
+            time.sleep(min(VERIFICATION_INTERVAL, remaining))
+    message = "Traffic verification expired; applied state and recovery configuration are retained"
+    raise RuntimeError(message)
+
+
 def reconcile(branch: str, lease: EnvironmentLease) -> None:
     """Replan superseded commits and reconcile newer work after each apply."""
     environment = resolve(branch)
@@ -307,21 +408,56 @@ def reconcile(branch: str, lease: EnvironmentLease) -> None:
                     directory, ["apply", "-input=false", "-lock-timeout=10m", str(plan)]
                 )
             receipt["status"] = "applied"
+            receipt["infrastructure_status"] = "applied"
+            receipt["namespace"] = environment.get(
+                "namespace_name", environment["resource_name"]
+            )
+            receipt["hostname"] = environment["hostname"]
             store(secret_name, archive, receipt)
+            print(
+                json.dumps(
+                    {
+                        "status": "applied",
+                        "commit": commit,
+                        "environment_id": environment["environment_id"],
+                    },
+                    sort_keys=True,
+                )
+            )
+            verification = verify_traffic(environment["hostname"], lease)
+            if latest(branch) != commit:
+                print("New branch commit detected after verification; reconciling")
+                continue
+            follow_up = terraform(
+                directory,
+                ["plan", "-input=false", "-lock-timeout=10m", "-detailed-exitcode"],
+                expected=(0, 2),
+            )
+            if follow_up != 0:
+                message = "Post-apply plan has changes; applied recovery configuration is retained"
+                raise RuntimeError(message)
+            if latest(branch) != commit:
+                print("New branch commit detected after follow-up plan; reconciling")
+                continue
+            receipt.update(verification)
+            receipt["follow_up_plan_exit_code"] = follow_up
+            receipt["status"] = "verified"
+            store(secret_name, archive, receipt)
+            store(secret_name + "-" + commit[:12], archive, receipt)
             print(
                 json.dumps(
                     {
                         "environment_id": environment["environment_id"],
                         "commit": commit,
                         "hostname": environment["hostname"],
-                        "status": "applied",
+                        "status": "verified",
+                        "verified_at": receipt["verified_at"],
+                        "follow_up_plan_exit_code": follow_up,
                     },
                     sort_keys=True,
                 )
             )
-            if latest(branch) == commit:
-                return
-            print("New branch commit detected after apply; reconciling")
+            return
 
 
 def cleanup(branch: str, lease: EnvironmentLease) -> None:
@@ -462,7 +598,7 @@ class EnvironmentLease:
                 self.lost.set()
                 return
 
-    def __enter__(self) -> EnvironmentLease:
+    def __enter__(self) -> Self:
         """Acquire ownership and start renewing the transaction Lease."""
         deadline = time.monotonic() + 600
         while not self._write(acquire=True):

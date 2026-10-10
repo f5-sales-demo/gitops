@@ -33,11 +33,92 @@ def source_archive() -> bytes:
 def record_call(calls: list, args: list) -> int:
     """Record an operation and emulate a plan with changes."""
     calls.append(args)
-    return 2 if args[0] == "plan" else 0
+    return (
+        2 if args[0] == "plan" and any(arg.startswith("-out=") for arg in args) else 0
+    )
+
+
+class TrafficTests(unittest.TestCase):
+    """Require semantic forwarding proof and bounded retries."""
+
+    def test_three_consecutive_checks_reset_after_failure(self) -> None:
+        """A transient failure resets the success streak."""
+        with (
+            mock.patch.object(
+                deployment,
+                "traffic_check",
+                side_effect=[None, ValueError(), None, None, None],
+            ) as check,
+            mock.patch.object(deployment.time, "sleep") as sleep,
+        ):
+            result = deployment.verify_traffic("gitops.f5-sales-demo.com", mock.Mock())
+        self.assertEqual(check.call_count, 5)
+        self.assertEqual(sleep.call_count, 4)
+        self.assertIn("verified_at", result)
+
+    def test_verification_expires_without_printing_response(self) -> None:
+        """An unreachable endpoint cannot qualify a deployment."""
+        with (
+            mock.patch.object(
+                deployment, "traffic_check", side_effect=ValueError("private response")
+            ),
+            mock.patch.object(
+                deployment.time, "monotonic", side_effect=[0, 0, 601, 601]
+            ),
+            mock.patch.object(deployment.time, "sleep"),
+            self.assertRaisesRegex(RuntimeError, "Traffic verification expired"),
+        ):
+            deployment.verify_traffic("gitops.f5-sales-demo.com", mock.Mock())
+
+    def test_httpbin_requires_both_markers_and_origin(self) -> None:
+        """Status 200 or a wrong origin cannot satisfy the gate."""
+        with (
+            mock.patch.object(deployment, "resolve_hostname"),
+            mock.patch.object(
+                deployment.uuid, "uuid4", return_value=mock.Mock(hex="marker")
+            ),
+            mock.patch.object(
+                deployment,
+                "request_json",
+                side_effect=[
+                    {
+                        "args": {"gitops_marker": "marker"},
+                        "url": "https://httpbin.org/get?gitops_marker=marker",
+                        "headers": {"Host": "httpbin.org"},
+                    },
+                    {
+                        "json": {"gitops_marker": "marker"},
+                        "url": "https://httpbin.org/anything",
+                        "headers": {"Host": "httpbin.org"},
+                    },
+                ],
+            ),
+        ):
+            deployment.traffic_check("gitops.f5-sales-demo.com", 100)
+        with (
+            mock.patch.object(deployment, "resolve_hostname"),
+            mock.patch.object(
+                deployment,
+                "request_json",
+                return_value={"args": {}, "url": "https://wrong.example/get"},
+            ),
+            self.assertRaises(ValueError),
+        ):
+            deployment.traffic_check("gitops.f5-sales-demo.com", 100)
 
 
 class DeploymentTests(unittest.TestCase):
     """Verify stale commits, private recovery and competing writers."""
+
+    def setUp(self) -> None:
+        """Keep reconcile tests independent of live traffic."""
+        patch = mock.patch.object(
+            deployment,
+            "verify_traffic",
+            return_value={"verified_at": "2026-10-09T00:00:00Z"},
+        )
+        patch.start()
+        self.addCleanup(patch.stop)
 
     def test_superseded_plan_never_applies(self) -> None:
         """Verify superseded plan never applies."""
@@ -50,6 +131,7 @@ class DeploymentTests(unittest.TestCase):
                 "latest",
                 side_effect=[
                     "a" * 40,
+                    "b" * 40,
                     "b" * 40,
                     "b" * 40,
                     "b" * 40,
@@ -75,14 +157,14 @@ class DeploymentTests(unittest.TestCase):
             ),
         ):
             deployment.reconcile("feature/demo", lease)
-        self.assertEqual(sum(args[0] == "plan" for args in calls), 2)
+        self.assertEqual(sum(args[0] == "plan" for args in calls), 3)
         self.assertEqual(sum(args[0] == "apply" for args in calls), 1)
         self.assertTrue(all(receipt["commit"] == "b" * 40 for receipt in stores))
         lease.check.assert_called_once()
 
     def test_new_commit_after_apply_reconciles(self) -> None:
         """Verify new commit after apply reconciles."""
-        commits = ["a" * 40] * 3 + ["b" * 40] * 5
+        commits = ["a" * 40] * 3 + ["b" * 40] * 7
         calls: list[list[str]] = []
         with (
             mock.patch.object(deployment, "latest", side_effect=commits),
