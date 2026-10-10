@@ -7,6 +7,7 @@ import argparse
 import base64
 import hashlib
 import io
+import ipaddress
 import json
 import os
 import shutil
@@ -243,22 +244,55 @@ def initialize(directory: Path, environment: dict) -> None:
     )
 
 
-def resolve_hostname(hostname: str, deadline: float) -> None:
-    """Resolve DNS in a child with a bounded execution time."""
-    subprocess.run(  # noqa: S603
-        [
-            shutil.which("python3") or "/usr/bin/python3",
-            "-c",
-            "import socket,sys; socket.getaddrinfo(sys.argv[1], 80)",
-            hostname,
-        ],
-        capture_output=True,
-        timeout=max(0.001, min(REQUEST_SECONDS, deadline - time.monotonic())),
-        check=True,
-    )
+def resolve_hostname(hostname: str, deadline: float) -> str:
+    """Resolve a public IPv4 address with a fresh DNS fallback for cached misses."""
+    try:
+        result = subprocess.run(  # noqa: S603
+            [
+                shutil.which("python3") or "/usr/bin/python3",
+                "-c",
+                "import socket,sys; "
+                "print(socket.getaddrinfo(sys.argv[1],80,socket.AF_INET)[0][4][0])",
+                hostname,
+            ],
+            capture_output=True,
+            timeout=max(0.001, min(REQUEST_SECONDS, deadline - time.monotonic())),
+            check=True,
+        )
+        address = result.stdout.decode().strip()
+    except (OSError, subprocess.SubprocessError):
+        answer = request_json(
+            "https://dns.google/resolve?name="
+            + urllib.parse.quote(hostname, safe="")
+            + "&type=A",
+            deadline,
+        )
+        addresses = (
+            [
+                item.get("data", "")
+                for item in answer.get("Answer", [])
+                if item.get("type") == 1
+            ]
+            if answer.get("Status") == 0
+            else []
+        )
+        if not addresses:
+            message = "Public DNS has no IPv4 answer"
+            raise ValueError(message) from None
+        address = addresses[0]
+    if not ipaddress.IPv4Address(address).is_global:
+        message = "DNS answer is not a public IPv4 address"
+        raise ValueError(message)
+    return address
 
 
-def request_json(url: str, deadline: float, payload: dict | None = None) -> dict:
+def request_json(
+    url: str,
+    deadline: float,
+    payload: dict | None = None,
+    *,
+    address: str | None = None,
+) -> dict:
     """Fetch only the public demo endpoint; keep responses in memory."""
     remaining = max(0.001, min(REQUEST_SECONDS, deadline - time.monotonic()))
     args = [
@@ -270,6 +304,8 @@ def request_json(url: str, deadline: float, payload: dict | None = None) -> dict
         "--max-time",
         str(remaining),
     ]
+    if address is not None:
+        args += ["--resolve", urllib.parse.urlsplit(url).hostname + ":80:" + address]
     if payload is not None:
         args += [
             "--header",
@@ -288,13 +324,15 @@ def traffic_check(hostname: str, deadline: float) -> None:
     if not hostname.endswith(".f5-sales-demo.com") or "/" in hostname:
         message = "Unexpected verification hostname"
         raise ValueError(message)
-    resolve_hostname(hostname, deadline)
+    address = resolve_hostname(hostname, deadline)
     marker = uuid.uuid4().hex
     payload = {"gitops_marker": marker}
     response = request_json(
-        "http://" + hostname + "/get?gitops_marker=" + marker, deadline
+        "http://" + hostname + "/get?gitops_marker=" + marker, deadline, address=address
     )
-    posted = request_json("http://" + hostname + "/anything", deadline, payload)
+    posted = request_json(
+        "http://" + hostname + "/anything", deadline, payload, address=address
+    )
     if response.get("args") != payload or posted.get("json") != payload:
         message = "HTTPBin did not echo the synthetic markers"
         raise ValueError(message)
@@ -331,6 +369,7 @@ def verify_traffic(hostname: str, lease: EnvironmentLease) -> dict:
                 return {
                     "verified_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
                     "consecutive_successes": streak,
+                    "dns_resolution": "system-with-public-dns-fallback",
                 }
         remaining = deadline - time.monotonic()
         if remaining > 0:

@@ -5,7 +5,10 @@ sidebar:
   order: 5
 ---
 
-Every deployment verifies DNS, GET `/get` with a unique synthetic marker, POST `/anything` with an unchanged JSON marker, and the upstream URL and Host `httpbin.org`. It requires three consecutive successes within ten minutes, retries every ten seconds, and bounds each request. A follow-up Terraform plan must return exit code 0 before the receipt reports `verified`.
+Every deployment verifies DNS, GET `/get` with a unique synthetic marker, POST `/anything` with an unchanged JSON marker, and the upstream URL and Host
+`httpbin.org`. It requires three consecutive successes within ten minutes, retries every ten seconds, and bounds each request. A bounded public DNS lookup
+handles cached negative system answers; requests use the resolved address while preserving the public hostname. A follow-up Terraform plan must return exit code
+0 before the receipt reports `verified`.
 
 Use the verified commit, timestamp, and hostname from the deployment receipt. An `applied` receipt records infrastructure progress; if traffic verification fails, state and the exact recovery configuration remain available for retry. The workflow fails until verification succeeds. New branch heads detected after traffic verification or the follow-up plan are reconciled before success.
 

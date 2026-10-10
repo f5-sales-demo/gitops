@@ -41,6 +41,43 @@ def record_call(calls: list, args: list) -> int:
 class TrafficTests(unittest.TestCase):
     """Require semantic forwarding proof and bounded retries."""
 
+    def test_fresh_dns_fallback_validates_public_answer(self) -> None:
+        """A cached negative system answer must not mask published public DNS."""
+        with (
+            mock.patch.object(
+                deployment.subprocess,
+                "run",
+                side_effect=deployment.subprocess.CalledProcessError(1, "dns"),
+            ),
+            mock.patch.object(
+                deployment,
+                "request_json",
+                return_value={
+                    "Status": 0,
+                    "Answer": [{"type": 1, "data": "185.56.152.168"}],
+                },
+            ),
+        ):
+            self.assertEqual(
+                deployment.resolve_hostname("gitops.f5-sales-demo.com", 100),
+                "185.56.152.168",
+            )
+        for answer in [
+            {"Status": 3},
+            {"Status": 0, "Answer": [{"type": 1, "data": "invalid"}]},
+            {"Status": 0, "Answer": [{"type": 1, "data": "127.0.0.1"}]},
+        ]:
+            with (
+                mock.patch.object(
+                    deployment.subprocess,
+                    "run",
+                    side_effect=deployment.subprocess.CalledProcessError(1, "dns"),
+                ),
+                mock.patch.object(deployment, "request_json", return_value=answer),
+                self.assertRaises(ValueError),
+            ):
+                deployment.resolve_hostname("gitops.f5-sales-demo.com", 100)
+
     def test_three_consecutive_checks_reset_after_failure(self) -> None:
         """A transient failure resets the success streak."""
         with (
@@ -73,7 +110,9 @@ class TrafficTests(unittest.TestCase):
     def test_httpbin_requires_both_markers_and_origin(self) -> None:
         """Status 200 or a wrong origin cannot satisfy the gate."""
         with (
-            mock.patch.object(deployment, "resolve_hostname"),
+            mock.patch.object(
+                deployment, "resolve_hostname", return_value="185.56.152.168"
+            ),
             mock.patch.object(
                 deployment.uuid, "uuid4", return_value=mock.Mock(hex="marker")
             ),
@@ -96,7 +135,9 @@ class TrafficTests(unittest.TestCase):
         ):
             deployment.traffic_check("gitops.f5-sales-demo.com", 100)
         with (
-            mock.patch.object(deployment, "resolve_hostname"),
+            mock.patch.object(
+                deployment, "resolve_hostname", return_value="185.56.152.168"
+            ),
             mock.patch.object(
                 deployment,
                 "request_json",
