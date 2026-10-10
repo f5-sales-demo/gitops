@@ -19,7 +19,10 @@ jobs:
     concurrency:
       group: resolver-${{ github.workflow }}-${{ github.run_id }}
       cancel-in-progress: false
-    if: vars.GITOPS_DEPLOYMENT_ENABLED == 'true'
+    if: >-
+      github.repository == 'f5-sales-demo/gitops' &&
+      ((inputs.branch || github.ref_name) == 'main' && vars.GITOPS_MAIN_ENABLED == 'true' ||
+      (inputs.branch || github.ref_name) != 'main' && vars.GITOPS_PREVIEW_ENABLED == 'true')
     runs-on: managed-socketless
     outputs:
       environment: ${{ steps.environment.outputs.identity }}

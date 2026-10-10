@@ -16,7 +16,7 @@ Repository onboarding must finish before infrastructure automation is enabled. T
 5. Install `REPO_SETTINGS_TOKEN` and `REPO_SYNC_TOKEN` through the canonical governance provisioner.
 6. Store `XCSH_API_URL` and `XCSH_API_TOKEN` as repository Actions secrets. Use the Sales Demo tenant URL and a token authorized to manage the demo resources.
 7. Confirm that `f5-sales-demo.com` is delegated to F5 Distributed Cloud and that the `gitops` resource names and hostnames are available.
-8. Enable Actions after onboarding verification succeeds.
+8. Enable Actions after onboarding verification succeeds. Set `GITOPS_MAIN_ENABLED=true` and keep `GITOPS_PREVIEW_ENABLED=false` until main passes required CI, ownership, live traffic, and a zero-change plan. Then enable previews with `GITOPS_PREVIEW_ENABLED=true`. Deletion cleanup remains available while deployments are disabled. The former combined deployment switch is unused.
 
 Secrets must stay in private storage. Never commit tokens, raw state, saved plans, or recovery archives, and never upload them as Actions artifacts.
 

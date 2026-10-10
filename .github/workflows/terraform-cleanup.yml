@@ -16,7 +16,7 @@ jobs:
     concurrency:
       group: resolver-${{ github.workflow }}-${{ github.run_id }}
       cancel-in-progress: false
-    if: vars.GITOPS_DEPLOYMENT_ENABLED == 'true' && (github.event_name == 'workflow_dispatch' || github.event.ref_type == 'branch')
+    if: (github.event_name == 'workflow_dispatch' || github.event.ref_type == 'branch')
     runs-on: managed-socketless
     outputs:
       environment: ${{ steps.environment.outputs.identity }}
