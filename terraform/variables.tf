@@ -7,7 +7,7 @@ variable "environment_id" {
   }
 }
 variable "base_name" {
-  description = "Base resource name and hostname prefix."
+  description = "Fixed namespace-scoped object name and namespace/hostname prefix."
   type        = string
   default     = "gitops"
   validation {

@@ -1,6 +1,7 @@
 locals {
-  resource_name = var.environment_id == "main" ? var.base_name : "${var.base_name}-${var.environment_id}"
-  hostname      = "${local.resource_name}.${var.base_domain}"
+  namespace_name = var.environment_id == "main" ? var.base_name : "${var.base_name}-${var.environment_id}"
+  resource_name  = var.base_name
+  hostname       = "${local.namespace_name}.${var.base_domain}"
   labels = {
     "ves.io/owner"       = "gitops"
     "gitops-environment" = var.environment_id
@@ -8,7 +9,7 @@ locals {
 }
 
 resource "xcsh_namespace" "environment" {
-  name   = local.resource_name
+  name   = local.namespace_name
   labels = local.labels
 }
 

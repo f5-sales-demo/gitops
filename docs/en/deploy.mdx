@@ -1,6 +1,6 @@
 ---
 title: Deploy a branch
-description: Push a Terraform change and follow the branch reconciliation receipt.
+description: Create a branch environment and follow its verified deployment receipt.
 sidebar:
   order: 4
 ---
@@ -8,15 +8,17 @@ sidebar:
 Complete [Set up the demo](../setup/) before deploying infrastructure.
 
 1. Create a developer branch from current `main`.
-2. Edit the Terraform configuration or deployment automation.
-3. Run the local validation commands from the setup guide.
-4. Commit and push the branch to this repository.
+2. Push the new branch to this repository. Creation deploys its namespace and objects without a Terraform edit.
+3. For later Terraform changes, run the local validation commands from the setup guide.
+4. Commit and push the validated changes.
 5. Open **Actions > Deploy branch environment** and follow the run.
-6. Read the public receipt containing the environment identity, applied commit, and hostname.
+6. Read the public receipt containing the environment identity, verified commit and timestamp, and hostname.
 7. Follow [Verify a deployment](../verify/) to check the endpoint.
 
-Only pushes that change `terraform/` or deployment automation trigger an automatic deployment. Documentation-only changes use the documentation workflow. Fork pull requests receive credential-free validation and cannot deploy infrastructure.
+Branch creation and later pushes that change `terraform/` or deployment automation trigger deployment. Tags and reserved governance, dependency-update, release,
+snapshot, and Pages branches are excluded. Main and preview activation controls must be enabled for their respective environments. Documentation-only changes
+use the documentation workflow. Fork pull requests receive credential-free validation and cannot deploy infrastructure.
 
 To retry an existing environment, run **Deploy branch environment** manually and provide its branch name. The job resolves the latest commit when it starts. Running a workflow for an older push still converges to the current branch head.
 
-Merging an approved Terraform change into `main` reconciles `gitops.f5-sales-demo.com`. A developer branch has its own hostname and resource namespace, so its changes do not replace main's resources.
+Merging an approved Terraform change into `main` reconciles `gitops.f5-sales-demo.com`. A developer branch has its own hostname and namespace with fixed `gitops` origin-pool and load-balancer names, so its changes do not replace main's resources.

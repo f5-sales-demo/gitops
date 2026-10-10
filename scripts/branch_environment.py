@@ -7,7 +7,16 @@ import json
 import re
 import unicodedata
 
-EXCLUDED = ("sync/", "renovate/", "dependabot/", "release/", "content-", "gh-pages")
+EXCLUDED = (
+    "sync/",
+    "governance/",
+    "renovate/",
+    "dependabot/",
+    "release/",
+    "snapshot/",
+    "content-",
+    "gh-pages",
+)
 
 
 def resolve(branch: str) -> dict:
@@ -31,7 +40,8 @@ def resolve(branch: str) -> dict:
         "branch": branch,
         "environment_id": identity,
         "hostname": name + ".f5-sales-demo.com",
-        "resource_name": name,
+        "namespace_name": name,
+        "resource_name": "gitops",
         "secret_suffix": identity,
         "deployable": not branch.startswith(EXCLUDED),
         "tfvars": {
